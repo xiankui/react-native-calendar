@@ -20,23 +20,8 @@ DerivedData
 *.hmap
 *.ipa
 *.xcuserstate
-project.xcworkspace
-
-# Android/IntelliJ
-#
-build/
-.idea
-.gradle
-local.properties
-*.iml
 
 # node.js
 #
 node_modules/
 npm-debug.log
-
-# BUCK
-buck-out/
-\.buckd/
-android/app/libs
-*.keystore

@@ -1,16 +1,16 @@
 {
   "name": "react-native-calendar",
-  "version": "0.11.0",
+  "version": "0.11.0-ui",
   "description": "Simple Calendar Component for React Native",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git@github.com:christopherdro/react-native-calendar.git"
+    "url": "git@github.com:xiankui/react-native-calendar.git"
   },
   "scripts": {
     "eslint": "eslint ."
   },
-  "author": "Christopher Dro <casheghian@gmail.com> (https://github.com/christopherdro)",
+  "author": "xiankui(https://github.com/xiankui)",
   "contributors": [
     {
       "name": "David Sanderson",

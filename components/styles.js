@@ -1,6 +1,16 @@
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet, Image } from 'react-native';
 
 const DEVICE_WIDTH = Dimensions.get('window').width;
+
+var iconDimension = 14;
+
+if (DEVICE_WIDTH >= 375) {
+  iconDimension = 16;
+}
+
+if (DEVICE_WIDTH >= 414) {
+  iconDimension = 18;
+}
 
 const styles = StyleSheet.create({
   calendarContainer: {
@@ -16,7 +26,7 @@ const styles = StyleSheet.create({
   },
   controlButtonText: {
     margin: 10,
-    fontSize: 15,
+    // fontSize: 15,
   },
   title: {
     flex: 1,
@@ -88,8 +98,6 @@ const styles = StyleSheet.create({
   },
   hasEventCircle: {
   },
-  hasEventDaySelectedCircle: {
-  },
   hasEventText: {
   },
   selectedDayText: {
@@ -99,6 +107,48 @@ const styles = StyleSheet.create({
   weekendDayText: {
     color: '#cccccc',
   },
+  leftBorderLine:{
+    borderLeftWidth: DEVICE_WIDTH >= 414 ? 1 : 0.5,
+    borderLeftColor: '#e4e4e4',
+    borderStyle: 'solid'
+  },
+
+  // event title
+  eventTitle: {
+    fontSize:8,
+    color:'#33b1ff', 
+    position: 'absolute', 
+    bottom: DEVICE_WIDTH <= 320 ? 3 : 5, 
+    left: 0, 
+    right: 0, 
+    textAlign: 'center'
+  },
+  eventLabel: {
+    padding: 1,
+    backgroundColor:'#faca1c',
+    borderRadius:2,
+    top:2,
+    right:2,
+    position:'absolute'
+  },
+  eventLabelText: {
+    fontSize:8,
+    color:'#fff',
+  },
+  dayWrapper: {
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    position: 'relative',
+  },
+  iconCircle: {
+    width: iconDimension,
+    height: iconDimension,
+    resizeMode: Image.resizeMode.contain,
+    position: 'absolute',
+    right: 2,
+    top: 2
+  }
 });
 
 export default styles;

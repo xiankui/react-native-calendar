@@ -15,40 +15,34 @@ import styles from './styles';
 const DEVICE_WIDTH = Dimensions.get('window').width;
 const VIEW_INDEX = 2;
 
-function getNumberOfWeeks(month, weekStart) {
-  const firstDay = moment(month).startOf('month').day();
-  const offset = (firstDay - weekStart + 7) % 7;
-  const days = moment(month).daysInMonth();
-  return Math.ceil((offset + days) / 7);
-}
-
 export default class Calendar extends Component {
 
   state = {
     currentMonthMoment: moment(this.props.startDate),
     selectedMoment: moment(this.props.selectedDate),
-    rowHeight: null,
   };
 
   static propTypes = {
-    currentMonth: PropTypes.any,
     customStyle: PropTypes.object,
     dayHeadings: PropTypes.array,
     eventDates: PropTypes.array,
     monthNames: PropTypes.array,
-    nextButtonText: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.object
-    ]),
+    // nextButtonText: PropTypes.oneOfType([
+    //   PropTypes.string,
+    //   PropTypes.object
+    // ]),
     onDateSelect: PropTypes.func,
+    onLongPressDate: PropTypes.func, // 长按执行请假操作
+    holidayMode: PropTypes.bool,
+    holidaySelected: PropTypes.array,
     onSwipeNext: PropTypes.func,
     onSwipePrev: PropTypes.func,
     onTouchNext: PropTypes.func,
     onTouchPrev: PropTypes.func,
-    prevButtonText: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.object
-    ]),
+    // prevButtonText: PropTypes.oneOfType([
+    //   PropTypes.string,
+    //   PropTypes.object
+    // ]),
     scrollEnabled: PropTypes.bool,
     selectedDate: PropTypes.any,
     showControls: PropTypes.bool,
@@ -73,8 +67,15 @@ export default class Calendar extends Component {
     showEventIndicators: false,
     startDate: moment().format('YYYY-MM-DD'),
     titleFormat: 'MMMM YYYY',
+    today: moment(),
     weekStart: 1,
   };
+
+  constructor(props) {
+    super(props);
+  
+    this.renderMonthView = this.renderMonthView.bind(this)
+  }
 
   componentDidMount() {
     // fixes initial scrolling bug on Android
@@ -84,14 +85,13 @@ export default class Calendar extends Component {
   componentDidUpdate() {
     this.scrollToItem(VIEW_INDEX);
   }
+  
+  componentWillReceiveProps(props) {
+    if (props.selectedDate) {
+      this.setState({selectedMoment: props.selectedDate});
+    }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.selectedDate && this.props.selectedDate !== nextProps.selectedDate) {
-      this.setState({selectedMoment: nextProps.selectedDate});
-    }
-    if (nextProps.currentMonth) {
-      this.setState({currentMonthMoment: moment(nextProps.currentMonth)});
-    }
+    // console.log('componentWillReceiveProps holidaySelected *****', props.holidaySelected)
   }
 
   getMonthStack(currentMonth) {
@@ -131,10 +131,15 @@ export default class Calendar extends Component {
   }
 
   selectDate(date) {
-    if (this.props.selectedDate === undefined) {
+    if (!this.props.holidayMode) {
       this.setState({ selectedMoment: date });
     }
+
     this.props.onDateSelect && this.props.onDateSelect(date ? date.format(): null );
+  }
+
+  longPressDate(date) {
+    this.props.onLongPressDate && this.props.onLongPressDate(date ? date.format() : null);
   }
 
   onPrev = () => {
@@ -151,7 +156,7 @@ export default class Calendar extends Component {
 
   scrollToItem(itemIndex) {
     const scrollToX = itemIndex * this.props.width;
-    if (this.props.scrollEnabled && this._calendar) {
+    if (this.props.scrollEnabled) {
       this._calendar.scrollTo({ y: 0, x: scrollToX, animated: false });
     }
   }
@@ -169,12 +174,6 @@ export default class Calendar extends Component {
     }
   }
 
-  onWeekRowLayout = (event) => {
-    if (this.state.rowHeight !== event.nativeEvent.layout.height) {
-      this.setState({ rowHeight: event.nativeEvent.layout.height });
-    }
-  }
-
   renderMonthView(argMoment, eventsMap) {
 
     let
@@ -186,7 +185,7 @@ export default class Calendar extends Component {
     const
       selectedMoment = moment(this.state.selectedMoment),
       weekStart = this.props.weekStart,
-      todayMoment = this.props.today ? moment(this.props.today) : moment(),
+      todayMoment = moment(this.props.today),
       todayIndex = todayMoment.date() - 1,
       argMonthDaysCount = argMoment.daysInMonth(),
       offset = (startOfArgMonthMoment.isoWeekday() - weekStart + 7) % 7,
@@ -198,11 +197,24 @@ export default class Calendar extends Component {
       ? eventsMap[argMoment.startOf('month').format()]
       : null;
 
+    // 请假日期
+    var _isHolidaySelected = false,
+        _holidaySelected = this.props.holidaySelected || [];
+
     do {
       const dayIndex = renderIndex - offset;
       const isoWeekday = (renderIndex + weekStart) % 7;
 
       if (dayIndex >= 0 && dayIndex < argMonthDaysCount) {
+        var _date = moment(startOfArgMonthMoment).set('date', dayIndex + 1);
+        var _date_formated = _date.format('YYYY-MM-DD');
+        
+        if (_holidaySelected.indexOf(_date_formated) !== -1) {
+          _isHolidaySelected = true;
+        } else {
+          _isHolidaySelected = false;
+        }
+
         days.push((
           <Day
             startOfMonth={startOfArgMonthMoment}
@@ -211,12 +223,18 @@ export default class Calendar extends Component {
             onPress={() => {
               this.selectDate(moment(startOfArgMonthMoment).set('date', dayIndex + 1));
             }}
+            onLongPress={() => {
+              this.longPressDate(moment(startOfArgMonthMoment).set('date', dayIndex + 1))
+            }}
             caption={`${dayIndex + 1}`}
             isToday={argMonthIsToday && (dayIndex === todayIndex)}
             isSelected={selectedMonthIsArg && (dayIndex === selectedIndex)}
             event={events && events[dayIndex]}
+            holidayMode={this.props.holidayMode}
+            holidaySelected={_isHolidaySelected}
             showEventIndicators={this.props.showEventIndicators}
             customStyle={this.props.customStyle}
+            isFirst={dayIndex===0?true:false}
           />
         ));
       } else {
@@ -226,7 +244,6 @@ export default class Calendar extends Component {
         weekRows.push(
           <View
             key={weekRows.length}
-            onLayout={weekRows.length ? undefined : this.onWeekRowLayout}
             style={[styles.weekRow, this.props.customStyle.weekRow]}
           >
             {days}
@@ -274,20 +291,20 @@ export default class Calendar extends Component {
             style={[styles.controlButton, this.props.customStyle.controlButton]}
             onPress={this.onPrev}
           >
-            <Text style={[styles.controlButtonText, this.props.customStyle.controlButtonText]}>
+            <View style={[styles.controlButtonText, this.props.customStyle.controlButtonText,{marginLeft:81}]}>
               {this.props.prevButtonText}
-            </Text>
+            </View>
           </TouchableOpacity>
           <Text style={[styles.title, this.props.customStyle.title]}>
-            {this.state.currentMonthMoment.format(this.props.titleFormat)}
+            {this.state.currentMonthMoment.year()}年{localizedMonth}
           </Text>
           <TouchableOpacity
             style={[styles.controlButton, this.props.customStyle.controlButton]}
             onPress={this.onNext}
           >
-            <Text style={[styles.controlButtonText, this.props.customStyle.controlButtonText]}>
+            <View style={[styles.controlButtonText, this.props.customStyle.controlButtonText,{marginRight:81}]}>
               {this.props.nextButtonText}
-            </Text>
+            </View>
           </TouchableOpacity>
         </View>
       )
@@ -303,7 +320,6 @@ export default class Calendar extends Component {
   render() {
     const calendarDates = this.getMonthStack(this.state.currentMonthMoment);
     const eventDatesMap = this.prepareEventDates(this.props.eventDates, this.props.events);
-    const numOfWeeks = getNumberOfWeeks(this.state.currentMonthMoment, this.props.weekStart);
 
     return (
       <View style={[styles.calendarContainer, this.props.customStyle.calendarContainer]}>
@@ -320,9 +336,6 @@ export default class Calendar extends Component {
             showsHorizontalScrollIndicator={false}
             automaticallyAdjustContentInsets
             onMomentumScrollEnd={(event) => this.scrollEnded(event)}
-            style={{
-              height: this.state.rowHeight ? this.state.rowHeight * numOfWeeks : null,
-            }}
           >
             {calendarDates.map((date) => this.renderMonthView(moment(date), eventDatesMap))}
           </ScrollView>
